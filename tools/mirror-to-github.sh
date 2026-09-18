@@ -187,14 +187,30 @@ echo "→ Prüfungen"
 FAIL="${MISSING_REFS:-0}"
 REVS="$(git rev-list --all)"
 
-check_absent() { # <label> <grep-pattern> [extended]
-  local label="$1" pattern="$2" mode="${3:-}"
+# Das Mirror-Werkzeug selbst (Skript + Doku) enthaelt Beispiele fuer URLs und
+# Geheimnis-Muster -> bei den Muster-Pruefungen ausklammern, sonst Fehlalarm.
+SELF_EXCLUDES=(":(exclude)tools" ":(exclude)MIRRORING.md")
+
+# grep ueber die gesamte History; ohne "head" im Hintergrund koennen SIGPIPEs
+# das Skript beenden, daher Ausgabe erst sammeln. <self>=1 blendet das eigene
+# Mirror-Werkzeug aus (nur fuer Muster-Pruefungen, die es selbst dokumentiert).
+examine() { # <self:0|1> <grep-args...>
+  local self="$1"; shift
+  if [[ "$self" == "1" ]]; then
+    git grep "$@" $REVS -- . "${SELF_EXCLUDES[@]}" 2>/dev/null || true
+  else
+    git grep "$@" $REVS 2>/dev/null || true
+  fi
+}
+
+check() { # <label> <self:0|1> <grep-pattern> [extended]
+  local label="$1" self="$2" pattern="$3" mode="${4:-}"
   if [[ -z "$pattern" ]]; then
     echo "  ⚠ $label: Muster leer (Quell-Remote ohne Host?) - Pruefung uebersprungen"
     return
   fi
   local hits
-  hits="$(git grep -l ${mode} -e "$pattern" $REVS 2>/dev/null || true)"
+  hits="$(examine "$self" -l ${mode} -e "$pattern" | head -20)"
   if [[ -n "$hits" ]]; then
     echo "  ✖ $label gefunden:"
     printf '      %s\n' $hits
@@ -204,28 +220,31 @@ check_absent() { # <label> <grep-pattern> [extended]
   fi
 }
 
-check_absent "interner Host ($SRC_HOSTORG)" "$SRC_HOSTORG"
-check_absent "interner Hostname ($SRC_HOST)" "$SRC_HOST"
-check_absent "Quell-URL" "$SRC_URL"
-check_absent "OpenAI/Anthropic-Keys" 'sk-[A-Za-z0-9]{16,}' -E
-check_absent "GitHub-Token" 'ghp_[A-Za-z0-9]{20,}' -E
-check_absent "GitHub-PAT" 'github_pat_[A-Za-z0-9_]{20,}' -E
-check_absent "AWS-Access-Key" 'AKIA[0-9A-Z]{16}' -E
-check_absent "Private Keys" 'BEGIN [A-Z ]*PRIVATE KEY' -E
-check_absent "Passwort-Zuweisungen" '(password|passwd|secret|api[_-]?key)[[:space:]]*[:=][[:space:]]*[^[:space:]]{6,}' -E
+# Pruefungen ohne Selbst-Ausnahme: der interne Host darf nirgends stehen
+check "interner Host ($SRC_HOSTORG)" 0 "$SRC_HOSTORG"
+check "interner Hostname ($SRC_HOST)" 0 "$SRC_HOST"
+check "Quell-URL" 0 "$SRC_URL"
+check "OpenAI/Anthropic-Keys" 0 'sk-[A-Za-z0-9]{16,}' -E
+check "GitHub-Token" 0 'ghp_[A-Za-z0-9]{20,}' -E
+check "GitHub-PAT" 0 'github_pat_[A-Za-z0-9_]{20,}' -E
+check "AWS-Access-Key" 0 'AKIA[0-9A-Z]{16}' -E
+check "Private Keys" 0 'BEGIN [A-Z ]*PRIVATE KEY' -E
+# Wert muss wie ein echtes Geheimnis aussehen (alnum, >=8 Zeichen) - Doku wie
+# "password=…" erzeugt so keinen Fehlalarm.
+PASSWORD_RE="(password|passwd|secret|api[_-]?key|token)[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9+/_.-]{8,}"
+check "Passwort-/Key-Zuweisungen" 1 "$PASSWORD_RE" -E
 
 # Generische Absicherung: JEDER fremde Remote-Host in der History ist verdaechtig.
 # Faengt auch Faelle, in denen das Skript gegen den falschen origin laeuft.
 # Muster bewusst streng: host muss nach user@ bzw. git@ folgen, damit Doku-/Code-
 # Platzhalter (git@$VAR, git@<host>) keine Fehlalarme erzeugen.
 HOST_RE=$'git@[A-Za-z0-9._-]+|ssh://[A-Za-z0-9._-]+@[A-Za-z0-9._-]+'
-FOREIGN="$(git grep -hoE "$HOST_RE" $REVS 2>/dev/null \
-  | sed -E 's|^ssh://||; s|^[^@]*@||' | sort -u | grep -vx "$TARGET_HOST" || true)"
+FOREIGN="$(examine 1 -hoE "$HOST_RE" | sed -E 's|^ssh://||; s|^[^@]*@||' | sort -u | grep -vx "$TARGET_HOST" || true)"
 if [[ -n "$FOREIGN" ]]; then
   echo "  ✖ fremde Remote-Hosts gefunden (erwartet nur $TARGET_HOST):"
   printf '      %s\n' $FOREIGN
   echo "  ℹ Fundstellen:"
-  git grep -nE "$HOST_RE" $REVS 2>/dev/null | head -20 | sed 's/^/      /'
+  examine 1 -nE "$HOST_RE" | head -20 | sed 's/^/      /'
   FAIL=1
 else
   echo "  ✔ keine fremden Remote-Hosts (nur $TARGET_HOST)"
