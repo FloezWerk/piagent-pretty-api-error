@@ -46,7 +46,7 @@ if [[ -z "$TARGET" ]]; then
 fi
 # Ziel muss eine echte Git-URL mit Host sein (sonst ist das Ersetzen sinnlos)
 if [[ ! "$TARGET" =~ ^([a-z+]+://)?([^@/]+@)?[A-Za-z0-9._-]+\.[A-Za-z0-9._-]+[:/].+ ]]; then
-  echo "Ziel '$TARGET' ist keine Git-URL mit Host (erwartet z. B. git@github.com:owner/repo.git)" >&2
+  echo "Ziel '$TARGET' ist keine Git-URL mit Host (erwartet z. B. <user>@github.com:owner/repo.git)" >&2
   exit 2
 fi
 case "$MODE" in full|squash) ;; *) echo "--history muss full|squash sein" >&2; exit 2 ;; esac
@@ -71,7 +71,7 @@ SRC_PATH="$(path_of "$SRC_HOSTPATH")"
 SRC_HOSTORG="$(org_of "$SRC_HOSTPATH")"
 SRC_URL="$(git remote get-url origin)"; SRC_URL="${SRC_URL%.git}"   # Form wie in origin
 SRC_NORM="$SOURCE_NORM"                             # <user>@<host>/<org>/<repo>
-SRC_SCP="$SRC_USER@$SRC_HOST:$SRC_PATH"             # git@host:org/repo
+SRC_SCP="$SRC_USER@$SRC_HOST:$SRC_PATH"             # <user>@<host>:<org>/<repo>
 
 TARGET_NORM="$(normalize "$TARGET")"
 TARGET_HOSTPATH="$(hostpath_of "$TARGET_NORM")"
@@ -154,7 +154,7 @@ else
   # Reihenfolge im scrub_tree: spezifischste Form zuerst (SRC_URL vor SRC_NORM/SRC_SCP)
   FB_ARGS+=(--tree-filter "$SCRUB" -- --branches --tags)
   # Wichtig: NICHT --all verwenden - refs/remotes/* wuerden den Tree-Filter ein
-  # zweites Mal auf schon ersetzte Dateien anwenden ("git@git@github.com").
+  # zweites Mal auf schon ersetzte Dateien anwenden (doppelte Praefixe).
 
   git filter-branch "${FB_ARGS[@]}" >/dev/null 2>&1
 
