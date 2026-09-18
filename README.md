@@ -31,15 +31,30 @@ ctrl+o · Rohdaten einblenden              ← gedimmt
 ```
 
 `ctrl+o` (`app.tools.expand`) blendet die Rohdaten ein – als **direkt anschliessendes,
-dunkleres Panel** in gleicher Breite/Ausrichtung (gehoert sichtbar zur Meldung):
+dunkleres Panel** in gleicher Breite/Ausrichtung (gehoert sichtbar zur Meldung).
+Enthalten die Rohdaten JSON, wird es eingerückt dargestellt (Label dann
+`Rohdaten (JSON):`, führender Status bleibt als Kopfzeile):
 
 ```
 …
 ctrl+o · Rohdaten ausblenden
 
-Rohdaten:
-429: {"message":"Provider returned error","code":429,"metadata":{…}}
+Rohdaten (JSON):
+429:
+{
+  "message": "Provider returned error",
+  "code": 429,
+  "metadata": {
+    "raw": "deepseek/… is temporarily rate-limited upstream. Please retry shortly.",
+    "provider_name": "Fireworks",
+    "provider_error_code": "invalid_request_error"
+  }
+}
 ```
+
+- Nur wenn der Text parsebar ist; sonst bleiben die Rohdaten unverändert.
+- Lange Werte/URLs brechen mit **Hanging-Indent unter dem Wert** um (nicht flush-left).
+- Kürzung bei > 8000 Zeichen (`… gekuerzt (N Zeichen)`), damit der Block nicht flutet.
 
 ## Eigenschaften
 

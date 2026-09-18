@@ -242,6 +242,19 @@ const rawBackground = (text: string) => {
 
 type RowKind = "title" | "field" | "hint" | "plain";
 
+/** `"raw": wert` - fuer den Hanging-Indent umgebrochener JSON-Werte. */
+const KEY_VALUE_RE = /^"[^"]+"\s*:\s*/;
+
+const spaces = (count: number) => " ".repeat(Math.max(0, count));
+
+/**
+ * Umbruch ohne die fuehrenden Leerzeichen (die bricht PiTUI sonst als eigene
+ * Zeile weg) und ohne Leerzeichen am Zeilenende.
+ */
+function wrapSegments(text: string, width: number): string[] {
+  return wrapTextWithAnsi(text, width).map((segment) => segment.replace(/ +$/, ""));
+}
+
 interface BlockRow {
   kind: RowKind;
   /** Nur fuer kind === "field": fett gesetzte Beschriftung, z. B. "Provider:" */
@@ -298,23 +311,50 @@ class ErrorBlock implements Component {
       0,
     );
     const gap = labelWidth > 0 ? 2 : 0;
-    const hang = " ".repeat(labelWidth + gap);
     const out: string[] = [];
 
     for (const row of this.rows) {
       if (row.kind === "field" && row.label) {
         const labelPad = " ".repeat(Math.max(0, labelWidth - visibleWidth(row.label)) + gap);
-        const avail = Math.max(1, contentWidth - labelWidth - gap);
-        wrapTextWithAnsi(row.text, avail).forEach((segment, index) => {
-          out.push(index === 0 ? `${BOLD}${row.label}${labelPad}${UNBOLD}${segment}` : `${hang}${segment}`);
+        const hang = labelWidth + gap;
+        const avail = Math.max(1, contentWidth - hang);
+        wrapSegments(row.text, avail).forEach((segment, index) => {
+          out.push(index === 0 ? `${BOLD}${row.label}${labelPad}${UNBOLD}${segment}` : `${spaces(hang)}${segment}`);
         });
         continue;
       }
 
-      for (const segment of wrapTextWithAnsi(row.text, contentWidth)) {
-        if (row.kind === "title") out.push(`${BOLD}${BRIGHT}${segment}${UNBOLD}`);
-        else if (row.kind === "hint") out.push(`${DIM}${segment}${UNBOLD}`);
-        else out.push(segment);
+      for (const logical of row.text.split("\n")) {
+        const lead = logical.length - logical.trimStart().length;
+        const content = logical.slice(lead);
+        const prefix = logical.slice(0, lead);
+        const lines: string[] = [];
+
+        // `"key": wert`: Umbruch unter dem Wert (wie bei den Label-Zeilen oben),
+        // sonst wuerde der Wert in einer eigenen Zeile unter dem Key landen.
+        const keyed = content.match(KEY_VALUE_RE);
+        const key = keyed?.[0].trimEnd() ?? "";
+        const hang = key ? visibleWidth(key) + 1 : Math.min(2, Math.max(0, contentWidth - lead - 8));
+        const avail = contentWidth - lead - hang;
+
+        if (keyed && keyed[0].length < content.length && avail >= 8) {
+          const value = content.slice(keyed[0].length);
+          wrapSegments(value, avail).forEach((segment, index) => {
+            lines.push(index === 0 ? `${key} ${segment}` : `${spaces(hang)}${segment}`);
+          });
+        } else {
+          const simpleHang = Math.min(2, Math.max(0, contentWidth - lead - 8));
+          wrapSegments(content, Math.max(1, contentWidth - lead - simpleHang)).forEach((segment, index) => {
+            lines.push(index === 0 ? segment : `${spaces(simpleHang)}${segment}`);
+          });
+        }
+
+        for (const line of lines) {
+          const full = prefix + line;
+          if (row.kind === "title") out.push(`${BOLD}${BRIGHT}${full}${UNBOLD}`);
+          else if (row.kind === "hint") out.push(`${DIM}${full}${UNBOLD}`);
+          else out.push(full);
+        }
       }
     }
 
@@ -333,15 +373,58 @@ function panel(rows: BlockRow[]): Component {
  * Rohdaten: schliesst direkt (ohne Luecke) an das Panel an, gleiche Breite,
  * gleicher Innenabstand, aber dunklerer Rotton.
  */
-function rawPanel(raw: string): Component {
+function rawPanel(raw: RawView): Component {
   const box = new Box(1, 1, useBackground ? rawBackground : undefined);
   box.addChild(
     new ErrorBlock([
-      { kind: "title", text: "Rohdaten:" },
-      { kind: "plain", text: raw },
+      { kind: "title", text: raw.json ? "Rohdaten (JSON):" : "Rohdaten:" },
+      { kind: "plain", text: raw.text },
     ]),
   );
   return box;
+}
+
+// ---------------------------------------------------------------------------
+// Rohdaten lesbar machen (JSON einruecken)
+// ---------------------------------------------------------------------------
+
+/** Obergrenze, damit ein riesiger Payload den Block nicht flutet. */
+const MAX_RAW_CHARS = 8000;
+
+interface RawView {
+  text: string;
+  /** true = der Text wurde als JSON erkannt und eingerueckt */
+  json: boolean;
+}
+
+/**
+ * Steckt in den Rohdaten JSON (z. B. `429: {"message":...}`), wird es mit
+ * 2 Zeichen Einrueckung formatiert; ein fuehrender Status bleibt als Kopfzeile.
+ * Ohne parsebares JSON bleiben die Rohdaten unveraendert.
+ */
+function formatRaw(raw: string): RawView {
+  const trimmed = raw.trim();
+  const start = trimmed.search(/[{[]/);
+  const end = Math.max(trimmed.lastIndexOf("}"), trimmed.lastIndexOf("]"));
+  if (start === -1 || end <= start) return { text: raw, json: false };
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed.slice(start, end + 1));
+  } catch {
+    return { text: raw, json: false };
+  }
+
+  const pretty = JSON.stringify(parsed, null, 2);
+  if (typeof pretty !== "string") return { text: raw, json: false };
+
+  const prefix = trimmed.slice(0, start).trim().replace(/[\s:–-]+$/, "");
+  const body = prefix ? `${prefix}:\n${pretty}` : pretty;
+  if (body.length > MAX_RAW_CHARS) {
+    return { text: `${body.slice(0, MAX_RAW_CHARS)}\n… gekuerzt (${body.length} Zeichen)`, json: true };
+  }
+
+  return { text: body, json: true };
 }
 
 // ---------------------------------------------------------------------------
@@ -400,7 +483,7 @@ export default function (pi: ExtensionAPI) {
     parts.push(panel(panelRows(data.lines, options.expanded)));
 
     if (data.raw && options.expanded) {
-      parts.push(rawPanel(data.raw));
+      parts.push(rawPanel(formatRaw(data.raw)));
     }
 
     if (parts.length === 1) return parts[0];
