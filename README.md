@@ -40,7 +40,8 @@ Rohdaten:
 - **Retry-Semantik bleibt unangetastet:** Pi klassifiziert Fehler über
   `isRetryableAssistantError(message.errorMessage)`. Die Kurzzeile wird nur gesetzt,
   wenn die Klassifikation danach identisch ist – sonst bleibt der Fehler roh.
-- Rotes Hintergrundfeld wird per ANSI im Text realisiert (kompatibel zu `wrapTextWithAnsi`).
+- Der rote Block ist eine eigene Component: er fuellt die Terminalbreite und bricht lange
+  Zeilen selbst um (kein abgeschnittenes/zerrissenes Layout bei schmalen Terminals).
 
 ## Installation
 
