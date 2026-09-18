@@ -8,7 +8,7 @@ darstellt statt als rohes JSON.
 Fehlerzeile (kurz):
 
 ```
-Error: ✖ API-Fehler · HTTP 429 · rate limit · Details: ctrl+o
+Error: ✖  API-Fehler · HTTP 429 · rate limit · Details: ctrl+o
 ```
 
 Darunter ein rot hinterlegtes Panel mit Innenabstand, spaltenbündigen Labels und
@@ -16,7 +16,7 @@ Hanging-Indent für umgebrochene Werte:
 
 ```
                                           ← Innenabstand oben
-✖ API-Fehler · HTTP 429 · rate limit      ← Titel (fett)
+✖  API-Fehler · HTTP 429 · rate limit      ← Titel (fett)
 
 Provider:  openrouter · Upstream: Fireworks
 Model:     deepseek/deepseek-v4.1-flash

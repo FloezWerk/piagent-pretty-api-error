@@ -2,7 +2,9 @@
  * api-error-format
  *
  * Rendert Provider-/API-Fehler (z. B. OpenRouter 429 JSON-Payloads) lesbar:
- *  - die Fehlerzeile selbst wird zu einer kurzen Kopfzeile ("✖ API-Fehler · HTTP 429 · rate limit")
+ *  - die Fehlerzeile selbst wird zu einer kurzen Kopfzeile ("✖  API-Fehler · HTTP 429 · rate limit")
+ *    (zwei Leerzeichen nach dem Icon: U+2716 wird in vielen Terminals als Emoji
+ *     mit 2 Zellen Breite gezeichnet und schluckt sonst das folgende Leerzeichen)
  *  - darunter haengt ein rot hinterlegter Detail-Block (als Session-Entry)
  *  - `ctrl+o` (app.tools.expand) blendet die Rohdaten ein/aus
  *
@@ -158,7 +160,7 @@ function truncate(value: string, max: number): string {
 // ---------------------------------------------------------------------------
 
 interface ErrorDetails {
-  /** Kopfzeile, z. B. "✖ API-Fehler · HTTP 429 · rate limit" */
+  /** Kopfzeile, z. B. "✖  API-Fehler · HTTP 429 · rate limit" */
   headline: string;
   /** Detailzeilen (ohne ANSI), werden im Block umgebrochen */
   lines: string[];
@@ -187,8 +189,8 @@ function buildDetails(raw: string, provider: string | undefined, model: string |
 
   const headline =
     parsed.status !== undefined
-      ? `✖ API-Fehler · HTTP ${parsed.status} · ${category(parsed.status, raw)}`
-      : `✖ API-Fehler · ${category(parsed.status, raw)}`;
+      ? `✖  API-Fehler · HTTP ${parsed.status} · ${category(parsed.status, raw)}`
+      : `✖  API-Fehler · ${category(parsed.status, raw)}`;
 
   const lines: string[] = [headline];
   const add = (label: string, value: string | undefined) => {
@@ -252,7 +254,7 @@ const FIELD_RE = /^([A-Za-z][A-Za-z_-]{0,15}):[ \t]?(.*)$/;
 
 /** Baut die Zeilen des Detail-Panels aus den gespeicherten Detailzeilen. */
 function panelRows(lines: string[], expanded: boolean): BlockRow[] {
-  const rows: BlockRow[] = [{ kind: "title", text: lines[0] ?? "✖ API-Fehler" }];
+  const rows: BlockRow[] = [{ kind: "title", text: lines[0] ?? "✖  API-Fehler" }];
 
   const fields: BlockRow[] = [];
   for (const line of lines.slice(1)) {
