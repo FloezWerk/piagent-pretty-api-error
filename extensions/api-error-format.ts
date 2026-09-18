@@ -14,15 +14,41 @@
 
 import type { EntryRenderOptions, ExtensionAPI, MessageEndEvent } from "@earendil-works/pi-coding-agent";
 import { isRetryableAssistantError } from "@earendil-works/pi-ai";
-import { Box, type Component, Container, Text, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import {
+  Box,
+  type Component,
+  Container,
+  getCapabilities,
+  Text,
+  visibleWidth,
+  wrapTextWithAnsi,
+} from "@earendil-works/pi-tui";
 
 const ENTRY_TYPE = "api-error-details";
 const MAX_VALUE = 400;
 
-// Roter Hintergrund + helle Schrift, lesbar auf dem dunklen Theme.
-const BG = "\x1b[48;5;88m";
+// Helle Schrift, lesbar auf dem dunklen Rot.
 const FG = "\x1b[38;5;224m";
 const RESET = "\x1b[39m\x1b[49m";
+
+/**
+ * Hintergruende fuer Hauptmeldung ("panel") und Rohdaten-Bereich ("raw").
+ * Bevorzugt 24-Bit-Farben (WT_SESSION/COLORTERM/kitty/... -> trueColor); im
+ * 256-Farben-Fallback gibt es nur eine dunkle Rotstufe (52), daher wird der
+ * Rohdaten-Bereich dort ueber die Schriftfarbe abgesetzt.
+ */
+interface BlockPalette {
+  panel: string;
+  raw: string;
+  rawFg: string;
+}
+
+function blockPalette(): BlockPalette {
+  if (getCapabilities().trueColor) {
+    return { panel: "\x1b[48;2;96;22;22m", raw: "\x1b[48;2;54;14;14m", rawFg: FG };
+  }
+  return { panel: "\x1b[48;5;52m", raw: "\x1b[48;5;52m", rawFg: "\x1b[38;5;181m" };
+}
 
 const NON_RETRYABLE_HINTS = [
   "insufficient_quota",
@@ -204,7 +230,13 @@ const DIM = "\x1b[2m";
 const BRIGHT = "\x1b[38;5;231m";
 
 /** Hintergrund + Schriftfarbe fuer das gesamte Panel (inkl. Padding). */
-const panelBackground = (text: string) => `${BG}${FG}${text}${RESET}`;
+const panelBackground = (text: string) => `${blockPalette().panel}${FG}${text}${RESET}`;
+
+/** Hintergrund + Schriftfarbe fuer den Rohdaten-Bereich (dunkleres Rot). */
+const rawBackground = (text: string) => {
+  const palette = blockPalette();
+  return `${palette.raw}${palette.rawFg}${text}${RESET}`;
+};
 
 type RowKind = "title" | "field" | "hint" | "plain";
 
@@ -295,6 +327,21 @@ function panel(rows: BlockRow[]): Component {
   return box;
 }
 
+/**
+ * Rohdaten: schliesst direkt (ohne Luecke) an das Panel an, gleiche Breite,
+ * gleicher Innenabstand, aber dunklerer Rotton.
+ */
+function rawPanel(raw: string): Component {
+  const box = new Box(1, 1, useBackground ? rawBackground : undefined);
+  box.addChild(
+    new ErrorBlock([
+      { kind: "title", text: "Rohdaten:" },
+      { kind: "plain", text: raw },
+    ]),
+  );
+  return box;
+}
+
 // ---------------------------------------------------------------------------
 // Retry-Klassifikation (identisch zu Pi halten)
 // ---------------------------------------------------------------------------
@@ -351,7 +398,7 @@ export default function (pi: ExtensionAPI) {
     parts.push(panel(panelRows(data.lines, options.expanded)));
 
     if (data.raw && options.expanded) {
-      parts.push(new Text(theme.fg("dim", `Rohdaten:\n${data.raw}`), 1, 0));
+      parts.push(rawPanel(data.raw));
     }
 
     if (parts.length === 1) return parts[0];

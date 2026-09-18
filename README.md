@@ -30,9 +30,13 @@ ctrl+o · Rohdaten einblenden              ← gedimmt
                                           ← Innenabstand unten
 ```
 
-`ctrl+o` (`app.tools.expand`) blendet die Rohdaten ein:
+`ctrl+o` (`app.tools.expand`) blendet die Rohdaten ein – als **direkt anschliessendes,
+dunkleres Panel** in gleicher Breite/Ausrichtung (gehoert sichtbar zur Meldung):
 
 ```
+…
+ctrl+o · Rohdaten ausblenden
+
 Rohdaten:
 429: {"message":"Provider returned error","code":429,"metadata":{…}}
 ```
@@ -50,6 +54,11 @@ Rohdaten:
   Zeilen selbst um (kein abgeschnittenes/zerrissenes Layout bei schmalen Terminals).
   Aufbau: PiTUI `Box` (Padding + Hintergrund) um einen `ErrorBlock`, der Labels
   spaltenbündig setzt und Fortsetzungszeilen auf die Wertspalte einrückt.
+- Farben werden über `getCapabilities().trueColor` gewählt:
+  - 24-Bit (Windows Terminal, kitty, iTerm2, Ghostty, …): Meldung `rgb(96,22,22)`,
+    Rohdaten `rgb(54,14,14)`
+  - 256-Farben-Fallback: beide `color 52` (dunkelstes Rot der Palette), Rohdaten
+    zusätzlich über die Schriftfarbe (181 statt 224) abgesetzt
 
 ## Installation
 
