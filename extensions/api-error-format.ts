@@ -14,10 +14,10 @@
 
 import type { EntryRenderOptions, ExtensionAPI, MessageEndEvent } from "@earendil-works/pi-coding-agent";
 import { isRetryableAssistantError } from "@earendil-works/pi-ai";
-import { Text } from "@earendil-works/pi-tui";
+import { type Component, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 const ENTRY_TYPE = "api-error-details";
-const MAX_LINE = 100;
+const MAX_VALUE = 400;
 
 // Roter Hintergrund + helle Schrift, lesbar auf dem dunklen Theme.
 const BG = "\x1b[48;5;88m";
@@ -127,23 +127,19 @@ function truncate(value: string, max: number): string {
   return value.length > max ? `${value.slice(0, Math.max(1, max - 1))}…` : value;
 }
 
-function header(status: number | undefined, raw: string): string {
-  return status !== undefined
-    ? `✖ API-Fehler · HTTP ${status} · ${category(status, raw)}`
-    : `✖ API-Fehler · ${category(status, raw)}`;
-}
-
 // ---------------------------------------------------------------------------
-// Darstellung
+// Fehler -> Daten
 // ---------------------------------------------------------------------------
 
 interface ErrorDetails {
   /** Kopfzeile, z. B. "✖ API-Fehler · HTTP 429 · rate limit" */
   headline: string;
-  /** Detailzeilen ohne ANSI */
+  /** Detailzeilen (ohne ANSI), werden im Block umgebrochen */
   lines: string[];
   /** Original-Fehlertext (Rohdaten) */
   raw: string;
+  /** Nur fuer die Vorschau: blendet die reale Fehlerzeile mit ein */
+  preview?: boolean;
 }
 
 function buildDetails(raw: string, provider: string | undefined, model: string | undefined): ErrorDetails {
@@ -163,12 +159,15 @@ function buildDetails(raw: string, provider: string | undefined, model: string |
   const upstreamProvider = clean(meta.provider_name);
   const code = j?.code ?? j?.error?.code;
 
-  const headline = header(parsed.status, raw);
-  const lines: string[] = [headline];
+  const headline =
+    parsed.status !== undefined
+      ? `✖ API-Fehler · HTTP ${parsed.status} · ${category(parsed.status, raw)}`
+      : `✖ API-Fehler · ${category(parsed.status, raw)}`;
 
+  const lines: string[] = [headline];
   const add = (label: string, value: string | undefined) => {
     if (!value) return;
-    lines.push(`${label}${truncate(value, MAX_LINE - label.length)}`);
+    lines.push(`${label}${truncate(value, MAX_VALUE)}`);
   };
 
   const origin = [
@@ -189,21 +188,53 @@ function buildDetails(raw: string, provider: string | undefined, model: string |
   return { headline, lines, raw };
 }
 
-/** Kopfzeile der Fehlermeldung (kurz, verweist auf ctrl+o). */
+/** Kurze Fehlerzeile, die auf den Detailblock verweist. */
 function shortMessage(details: ErrorDetails, parsedJson: boolean, raw: string): string {
   const suffix = parsedJson ? "" : ` · ${truncate(clean(raw) ?? raw, 60)}`;
   return `${details.headline}${suffix} · Details: ctrl+o`;
 }
 
-function block(text: string, background: boolean): string {
-  return background ? `${BG}${FG}${text}${RESET}` : text;
+// ---------------------------------------------------------------------------
+// Rendering: rot hinterlegter Block, der sich an die Terminalbreite anpasst
+// ---------------------------------------------------------------------------
+
+interface BlockPart {
+  text: string;
+  /** true = roter Hintergrund ueber die volle Breite */
+  bg: boolean;
 }
 
-/** Rot hinterlegter, rechteckiger Block (bei abgeschaltetem Hintergrund nur Text). */
-function redBlock(lines: string[], background: boolean): string {
-  if (!background) return lines.join("\n");
-  const width = Math.min(MAX_LINE, Math.max(...lines.map((line) => line.length)));
-  return lines.map((line) => block(line.padEnd(width), true)).join("\n");
+function paint(line: string, width: number): string {
+  const pad = Math.max(0, width - visibleWidth(line));
+  return `${BG}${FG}${line}${" ".repeat(pad)}${RESET}`;
+}
+
+class ErrorBlock implements Component {
+  private readonly parts: BlockPart[];
+  private readonly paddingX: number;
+
+  constructor(parts: BlockPart[], paddingX: number) {
+    this.parts = parts;
+    this.paddingX = paddingX;
+  }
+
+  render(width: number): string[] {
+    const paddingX = Math.max(0, Math.min(this.paddingX, Math.max(0, Math.floor((width - 1) / 2))));
+    const contentWidth = Math.max(1, width - paddingX * 2);
+    const indent = " ".repeat(paddingX);
+    const out: string[] = [];
+
+    for (const part of this.parts) {
+      for (const logical of part.text.split("\n")) {
+        for (const segment of wrapTextWithAnsi(logical, contentWidth)) {
+          const line = indent + segment;
+          out.push(part.bg ? paint(line, width) : line);
+        }
+      }
+    }
+
+    return out.length > 0 ? out : [""];
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -248,27 +279,32 @@ export default function (pi: ExtensionAPI) {
   /** Letzter, noch nicht abgeschlossener Fehler der aktuellen Ausfuehrung. */
   let pending: ErrorDetails | undefined;
 
-  pi.registerEntryRenderer<ErrorDetails>(
-    ENTRY_TYPE,
-    (entry, options: EntryRenderOptions, theme) => {
-      const data = entry.data;
-      if (!data || !Array.isArray(data.lines)) return undefined;
+  pi.registerEntryRenderer<ErrorDetails>(ENTRY_TYPE, (entry, options: EntryRenderOptions, theme) => {
+    const data = entry.data;
+    if (!data || !Array.isArray(data.lines)) return undefined;
 
-      const parts: string[] = [redBlock(data.lines, useBackground)];
+    const parts: BlockPart[] = [{ text: data.lines.join("\n"), bg: useBackground }];
 
-      if (data.raw) {
-        if (options.expanded) {
-          parts.push("");
-          parts.push(theme.fg("dim", "Rohdaten:"));
-          parts.push(theme.fg("dim", data.raw));
-        } else {
-          parts.push(theme.fg("dim", "… Rohdaten ein-/ausblenden: ctrl+o"));
-        }
+    // Vorschau: sieht sonst anders aus als der echte Fehler (Pi rendert dort die Fehlerzeile).
+    if (data.preview) {
+      parts.unshift({
+        text: theme.fg("dim", `Error: ${shortMessage(data, true, data.raw)}`),
+        bg: false,
+      });
+    }
+
+    if (data.raw) {
+      if (options.expanded) {
+        parts.push({ text: "", bg: false });
+        parts.push({ text: theme.fg("dim", "Rohdaten:"), bg: false });
+        parts.push({ text: theme.fg("dim", data.raw), bg: false });
+      } else {
+        parts.push({ text: theme.fg("dim", "… Rohdaten ein-/ausblenden: ctrl+o"), bg: false });
       }
+    }
 
-      return new Text(parts.join("\n"), 1, 0);
-    },
-  );
+    return new ErrorBlock(parts, 1);
+  });
 
   pi.on("message_end", (event: MessageEndEvent) => {
     const message = event.message;
@@ -312,7 +348,8 @@ export default function (pi: ExtensionAPI) {
       }
 
       if (arg === "" || arg === "preview") {
-        pi.appendEntry(ENTRY_TYPE, buildDetails(SAMPLE_ERROR, "openrouter", "deepseek/deepseek-v4.1-flash"));
+        const details = buildDetails(SAMPLE_ERROR, "openrouter", "deepseek/deepseek-v4.1-flash");
+        pi.appendEntry(ENTRY_TYPE, { ...details, preview: true });
         ctx.ui.notify("Beispiel-Fehlerblock angehaengt - ctrl+o zeigt die Rohdaten", "info");
         return;
       }
