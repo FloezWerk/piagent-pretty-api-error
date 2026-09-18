@@ -63,14 +63,14 @@ host_of() { printf '%s' "${1%%/*}"; }       # host/org/repo -> host
 path_of() { printf '%s' "${1#*/}"; }        # host/org/repo -> org/repo
 org_of()  { printf '%s' "${1%/*}"; }        # host/org/repo -> host/org
 
-SOURCE_NORM="$(normalize "$(git remote get-url origin)")"   # git@host/org/repo
+SOURCE_NORM="$(normalize "$(git remote get-url origin)")"   # <user>@<host>/<org>/<repo>
 SRC_HOSTPATH="$(hostpath_of "$SOURCE_NORM")"
 SRC_USER="${SOURCE_NORM%%@*}"; [[ "$SRC_USER" == "$SOURCE_NORM" ]] && SRC_USER="git"
 SRC_HOST="$(host_of "$SRC_HOSTPATH")"
 SRC_PATH="$(path_of "$SRC_HOSTPATH")"
 SRC_HOSTORG="$(org_of "$SRC_HOSTPATH")"
 SRC_URL="$(git remote get-url origin)"; SRC_URL="${SRC_URL%.git}"   # Form wie in origin
-SRC_NORM="$SOURCE_NORM"                             # git@host/org/repo
+SRC_NORM="$SOURCE_NORM"                             # <user>@<host>/<org>/<repo>
 SRC_SCP="$SRC_USER@$SRC_HOST:$SRC_PATH"             # git@host:org/repo
 
 TARGET_NORM="$(normalize "$TARGET")"
@@ -216,13 +216,16 @@ check_absent "Passwort-Zuweisungen" '(password|passwd|secret|api[_-]?key)[[:spac
 
 # Generische Absicherung: JEDER fremde Remote-Host in der History ist verdaechtig.
 # Faengt auch Faelle, in denen das Skript gegen den falschen origin laeuft.
-FOREIGN="$(git grep -hoE 'git@[A-Za-z0-9._-]+|ssh://([A-Za-z0-9._-]+@)?[A-Za-z0-9._-]+' $REVS 2>/dev/null \
+# Muster bewusst streng: host muss nach user@ bzw. git@ folgen, damit Doku-/Code-
+# Platzhalter (git@$VAR, git@<host>) keine Fehlalarme erzeugen.
+HOST_RE=$'git@[A-Za-z0-9._-]+|ssh://[A-Za-z0-9._-]+@[A-Za-z0-9._-]+'
+FOREIGN="$(git grep -hoE "$HOST_RE" $REVS 2>/dev/null \
   | sed -E 's|^ssh://||; s|^[^@]*@||' | sort -u | grep -vx "$TARGET_HOST" || true)"
 if [[ -n "$FOREIGN" ]]; then
   echo "  ✖ fremde Remote-Hosts gefunden (erwartet nur $TARGET_HOST):"
   printf '      %s\n' $FOREIGN
   echo "  ℹ Fundstellen:"
-  git grep -nE 'git@[A-Za-z0-9._-]+|ssh://([A-Za-z0-9._-]+@)?[A-Za-z0-9._-]+' $REVS 2>/dev/null | head -20 | sed 's/^/      /'
+  git grep -nE "$HOST_RE" $REVS 2>/dev/null | head -20 | sed 's/^/      /'
   FAIL=1
 else
   echo "  ✔ keine fremden Remote-Hosts (nur $TARGET_HOST)"

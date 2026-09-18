@@ -50,7 +50,7 @@ Was das Skript macht:
 2. ersetzt internen Host/Org in **allen** Commits (Tree-Filter) + in annotierten Tags
 3. optional Autor/Committer **und Tagger** auf eine öffentliche Identität
 4. prüft: interner Host, Quell-URL, fremde Remote-Hosts, Token-/Key-Muster,
-   `password=…`-Zuweisungen → **bricht ab, wenn etwas übrig ist**
+   Passwort-Zuweisungen mit Wert → **bricht ab, wenn etwas übrig ist**
 5. `git push --mirror` (Branches + Tags)
 
 Exit-Code ≠ 0 = nichts gepusht.
