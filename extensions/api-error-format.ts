@@ -14,7 +14,7 @@
 
 import type { EntryRenderOptions, ExtensionAPI, MessageEndEvent } from "@earendil-works/pi-coding-agent";
 import { isRetryableAssistantError } from "@earendil-works/pi-ai";
-import { type Component, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import { Box, type Component, Container, Text, visibleWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 const ENTRY_TYPE = "api-error-details";
 const MAX_VALUE = 400;
@@ -195,46 +195,104 @@ function shortMessage(details: ErrorDetails, parsedJson: boolean, raw: string): 
 }
 
 // ---------------------------------------------------------------------------
-// Rendering: rot hinterlegter Block, der sich an die Terminalbreite anpasst
+// Rendering: rot hinterlegtes Panel, das sich an die Terminalbreite anpasst
 // ---------------------------------------------------------------------------
 
-interface BlockPart {
+const BOLD = "\x1b[1m";
+const UNBOLD = "\x1b[22m";
+const DIM = "\x1b[2m";
+const BRIGHT = "\x1b[38;5;231m";
+
+/** Hintergrund + Schriftfarbe fuer das gesamte Panel (inkl. Padding). */
+const panelBackground = (text: string) => `${BG}${FG}${text}${RESET}`;
+
+type RowKind = "title" | "field" | "hint" | "plain";
+
+interface BlockRow {
+  kind: RowKind;
+  /** Nur fuer kind === "field": fett gesetzte Beschriftung, z. B. "Provider:" */
+  label?: string;
   text: string;
-  /** true = roter Hintergrund ueber die volle Breite */
-  bg: boolean;
 }
 
-function paint(line: string, width: number): string {
-  const pad = Math.max(0, width - visibleWidth(line));
-  return `${BG}${FG}${line}${" ".repeat(pad)}${RESET}`;
+/** "Provider: openrouter" -> Label + Wert (fuer Spaltenausrichtung). */
+const FIELD_RE = /^([A-Za-z][A-Za-z_-]{0,15}):[ \t]?(.*)$/;
+
+/** Baut die Zeilen des Detail-Panels aus den gespeicherten Detailzeilen. */
+function panelRows(lines: string[], expanded: boolean): BlockRow[] {
+  const rows: BlockRow[] = [{ kind: "title", text: lines[0] ?? "✖ API-Fehler" }];
+
+  const fields: BlockRow[] = [];
+  for (const line of lines.slice(1)) {
+    const match = line.match(FIELD_RE);
+    fields.push(
+      match
+        ? { kind: "field", label: `${match[1]}:`, text: match[2] }
+        : { kind: "field", text: line },
+    );
+  }
+
+  if (fields.length > 0) {
+    rows.push({ kind: "plain", text: "" });
+    rows.push(...fields);
+  }
+
+  rows.push({ kind: "plain", text: "" });
+  rows.push({
+    kind: "hint",
+    text: expanded ? "ctrl+o · Rohdaten ausblenden" : "ctrl+o · Rohdaten einblenden",
+  });
+
+  return rows;
 }
 
+/**
+ * Panelinhalt: Beschriftungen spaltenbündig, umgebrochene Werte mit Hanging-Indent.
+ * Padding und Hintergrund kommen von einer `Box` drumherum.
+ */
 class ErrorBlock implements Component {
-  private readonly parts: BlockPart[];
-  private readonly paddingX: number;
+  private readonly rows: BlockRow[];
 
-  constructor(parts: BlockPart[], paddingX: number) {
-    this.parts = parts;
-    this.paddingX = paddingX;
+  constructor(rows: BlockRow[]) {
+    this.rows = rows;
   }
 
   render(width: number): string[] {
-    const paddingX = Math.max(0, Math.min(this.paddingX, Math.max(0, Math.floor((width - 1) / 2))));
-    const contentWidth = Math.max(1, width - paddingX * 2);
-    const indent = " ".repeat(paddingX);
+    const contentWidth = Math.max(1, width);
+    const labelWidth = this.rows.reduce(
+      (max, row) => (row.kind === "field" && row.label ? Math.max(max, visibleWidth(row.label)) : max),
+      0,
+    );
+    const gap = labelWidth > 0 ? 2 : 0;
+    const hang = " ".repeat(labelWidth + gap);
     const out: string[] = [];
 
-    for (const part of this.parts) {
-      for (const logical of part.text.split("\n")) {
-        for (const segment of wrapTextWithAnsi(logical, contentWidth)) {
-          const line = indent + segment;
-          out.push(part.bg ? paint(line, width) : line);
-        }
+    for (const row of this.rows) {
+      if (row.kind === "field" && row.label) {
+        const labelPad = " ".repeat(Math.max(0, labelWidth - visibleWidth(row.label)) + gap);
+        const avail = Math.max(1, contentWidth - labelWidth - gap);
+        wrapTextWithAnsi(row.text, avail).forEach((segment, index) => {
+          out.push(index === 0 ? `${BOLD}${row.label}${labelPad}${UNBOLD}${segment}` : `${hang}${segment}`);
+        });
+        continue;
+      }
+
+      for (const segment of wrapTextWithAnsi(row.text, contentWidth)) {
+        if (row.kind === "title") out.push(`${BOLD}${BRIGHT}${segment}${UNBOLD}`);
+        else if (row.kind === "hint") out.push(`${DIM}${segment}${UNBOLD}`);
+        else out.push(segment);
       }
     }
 
     return out.length > 0 ? out : [""];
   }
+}
+
+/** Rot hinterlegtes Panel mit Innenabstand. */
+function panel(rows: BlockRow[]): Component {
+  const box = new Box(1, 1, useBackground ? panelBackground : undefined);
+  box.addChild(new ErrorBlock(rows));
+  return box;
 }
 
 // ---------------------------------------------------------------------------
@@ -283,27 +341,24 @@ export default function (pi: ExtensionAPI) {
     const data = entry.data;
     if (!data || !Array.isArray(data.lines)) return undefined;
 
-    const parts: BlockPart[] = [{ text: data.lines.join("\n"), bg: useBackground }];
+    const parts: Component[] = [];
 
     // Vorschau: sieht sonst anders aus als der echte Fehler (Pi rendert dort die Fehlerzeile).
     if (data.preview) {
-      parts.unshift({
-        text: theme.fg("dim", `Error: ${shortMessage(data, true, data.raw)}`),
-        bg: false,
-      });
+      parts.push(new Text(theme.fg("dim", `Error: ${shortMessage(data, true, data.raw)}`), 1, 0));
     }
 
-    if (data.raw) {
-      if (options.expanded) {
-        parts.push({ text: "", bg: false });
-        parts.push({ text: theme.fg("dim", "Rohdaten:"), bg: false });
-        parts.push({ text: theme.fg("dim", data.raw), bg: false });
-      } else {
-        parts.push({ text: theme.fg("dim", "… Rohdaten ein-/ausblenden: ctrl+o"), bg: false });
-      }
+    parts.push(panel(panelRows(data.lines, options.expanded)));
+
+    if (data.raw && options.expanded) {
+      parts.push(new Text(theme.fg("dim", `Rohdaten:\n${data.raw}`), 1, 0));
     }
 
-    return new ErrorBlock(parts, 1);
+    if (parts.length === 1) return parts[0];
+
+    const container = new Container();
+    for (const part of parts) container.addChild(part);
+    return container;
   });
 
   pi.on("message_end", (event: MessageEndEvent) => {

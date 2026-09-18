@@ -11,17 +11,23 @@ Fehlerzeile (kurz):
 Error: ✖ API-Fehler · HTTP 429 · rate limit · Details: ctrl+o
 ```
 
-Darunter ein rot hinterlegter Detailblock:
+Darunter ein rot hinterlegtes Panel mit Innenabstand, spaltenbündigen Labels und
+Hanging-Indent für umgebrochene Werte:
 
 ```
-✖ API-Fehler · HTTP 429 · rate limit
-Provider: openrouter · Upstream: Fireworks
-Model: deepseek/deepseek-v4.1-flash
-Grund: Provider returned error
-Upstream: …temporarily rate-limited upstream…
-Code: invalid_request_error
-Hinweis: Retry shortly, add your own provider key…
-… Rohdaten ein-/ausblenden: ctrl+o
+                                          ← Innenabstand oben
+✖ API-Fehler · HTTP 429 · rate limit      ← Titel (fett)
+
+Provider:  openrouter · Upstream: Fireworks
+Model:     deepseek/deepseek-v4.1-flash
+Grund:     Provider returned error
+Upstream:  deepseek/… is temporarily rate-limited upstream. Please retry shortly,
+           or add your own key to accumulate your rate limits: …
+Code:      invalid_request_error
+Hinweis:   Retry shortly, add your own provider key …
+
+ctrl+o · Rohdaten einblenden              ← gedimmt
+                                          ← Innenabstand unten
 ```
 
 `ctrl+o` (`app.tools.expand`) blendet die Rohdaten ein:
@@ -42,6 +48,8 @@ Rohdaten:
   wenn die Klassifikation danach identisch ist – sonst bleibt der Fehler roh.
 - Der rote Block ist eine eigene Component: er fuellt die Terminalbreite und bricht lange
   Zeilen selbst um (kein abgeschnittenes/zerrissenes Layout bei schmalen Terminals).
+  Aufbau: PiTUI `Box` (Padding + Hintergrund) um einen `ErrorBlock`, der Labels
+  spaltenbündig setzt und Fortsetzungszeilen auf die Wertspalte einrückt.
 
 ## Installation
 
