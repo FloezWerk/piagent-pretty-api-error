@@ -1,0 +1,21 @@
+{
+  "name": "piagent-pretty-api-error",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pi extension: renders provider/API errors as a readable, highlighted block with ctrl+o raw-data expansion instead of raw JSON.",
+  "keywords": [
+    "pi-package",
+    "pi-extension"
+  ],
+  "license": "MIT",
+  "pi": {
+    "extensions": [
+      "./extensions"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  }
+}
