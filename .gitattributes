@@ -1,0 +1,13 @@
+# Einheitliche Zeilenenden (GitHub rendert/verarbeitet LF am zuverlässigsten)
+* text=auto eol=lf
+
+# Binärdateien nicht normalisieren
+*.png binary
+*.jpg binary
+*.gif binary
+*.woff binary
+*.woff2 binary
+
+# Linguist: Extension-Code als TypeScript zählen, generierte Dateien ignorieren
+*.ts text
+package-lock.json linguist-generated

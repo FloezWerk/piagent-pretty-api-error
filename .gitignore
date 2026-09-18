@@ -2,3 +2,17 @@ node_modules/
 package-lock.json
 *.log
 .DS_Store
+
+# Editor/OS
+*.swp
+.idea/
+.vscode/
+
+# Lokale/vertrauliche Dateien (nicht ins Repo, nicht in den Mirror)
+.env
+.env.*
+*.local
+
+# Pi-eigene Arbeitsdaten
+.spec-flow/
+.pi/
