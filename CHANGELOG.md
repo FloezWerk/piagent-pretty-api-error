@@ -44,3 +44,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Retry semantics are preserved: the short error line is only applied when
   `isRetryableAssistantError` classifies it identically
 - `/apierrors preview|on|off` command
+
+<!-- Versions link to their GitHub release page (created by release.yml), while
+     [Unreleased] links to the comparison against the last tag. -->
+[Unreleased]: https://github.com/FloezWerk/piagent-pretty-api-error/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/FloezWerk/piagent-pretty-api-error/releases/tag/v0.1.0
+
+<!-- 0.1.1 was released to npm without a git tag, so it links to npm. -->
+[0.1.1]: https://www.npmjs.com/package/@floez-werk/piagent-pretty-api-error/v/0.1.1

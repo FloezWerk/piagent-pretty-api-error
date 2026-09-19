@@ -64,6 +64,13 @@ jobs:
       - name: Repeat CI checks
         run: npm run check
 
+      # Both the repository hosts and npm render README.md. The block is
+      # committed by the release step (see AGENTS.md) and re-synced here so the
+      # npm package page is correct even when that was forgotten - it is
+      # idempotent and "npm run check" above already verified consistency.
+      - name: Sync the README release-notes block
+        run: npm run readme
+
       # The extension is plain TypeScript loaded by pi - no build step needed.
       - name: Publish to npm (with provenance)
         run: npm publish --access public --provenance
@@ -73,8 +80,13 @@ jobs:
       - name: Build tarball for the GitHub release
         run: npm pack
 
+      # Same text as the npm package page: the CHANGELOG section of this version
+      # (scripts/release-notes.mjs), instead of a generated commit list.
+      - name: Build release notes
+        run: node scripts/release-notes.mjs --out /tmp/release-notes.md
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: floez-werk-piagent-pretty-api-error-*.tgz
-          generate_release_notes: true
+          body_path: /tmp/release-notes.md

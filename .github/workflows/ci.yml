@@ -22,13 +22,15 @@ jobs:
       # The checks live in package.json scripts so they run identically on a
       # dev machine and in CI (see AGENTS.md). There is nothing to install:
       # the extension has no runtime dependencies (pi bundles its peers).
-      - name: Bundle + package content checks
+      # This includes the guard that the README release-notes block matches the
+      # CHANGELOG section of the current package version.
+      - name: README, bundle and package content checks
         run: npm run check
 
       # AGENTS.md: this project is English-only.
       - name: No-German guard
         run: |
-          if grep -rInP '[äöüÄÖÜß]' README.md AGENTS.md extensions package.json; then
+          if grep -rInP '[äöüÄÖÜß]' README.md AGENTS.md CHANGELOG.md extensions scripts package.json; then
             echo '::error::German text found (see AGENTS.md: English only)'
             exit 1
           fi

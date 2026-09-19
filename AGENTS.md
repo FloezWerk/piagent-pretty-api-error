@@ -20,6 +20,7 @@ Everything in this repo is written in **English** and must stay English:
 ## Project layout
 
 - `extensions/api-error-format.ts` - the Pi extension (single entry point)
+- `scripts/` - release helpers (README changelog block, release notes); not published
 - `CHANGELOG.md` - user-facing changes per version (Keep a Changelog format)
 - `.spec-flow/` - tooling state, not part of the extension
 
@@ -31,12 +32,17 @@ Everything in this repo is written in **English** and must stay English:
 - Internal refactors, CI/tooling tweaks and docs-only fixes: no changelog entry.
 - `release.yml` rejects a tag without a matching `## [X.Y.Z]` entry - a
   forgotten entry surfaces at release time at the latest.
+- `README.md` shows the release notes of the current version in the marked
+  block: generated from `CHANGELOG.md` via `npm run readme` (Gitea, the GitHub
+  mirror and npm render the README). Never edit that block by hand.
 
 ## Checks
 
-- Local: `npm run check` (bundle smoke test + `npm pack --dry-run`; the same
-  scripts run in CI, see `.github/workflows/ci.yml`). Peers are bundled by pi,
-  so there is nothing to install.
+- Local: `npm run check` (README release-notes block is up to date, bundle smoke
+  test, `npm pack --dry-run`; the same scripts run in CI, see
+  `.github/workflows/ci.yml`). Peers are bundled by pi, so there is nothing to
+  install.
+- `npm run readme` - regenerate the README release-notes block from `CHANGELOG.md`.
 - Visual: `pi -e ./extensions/api-error-format.ts` -> `/apierrors preview`
   (`ctrl+o` toggles raw data, `/apierrors on|off` the red background).
 - Before committing: quick "no German" review of all touched strings/docs.
@@ -44,10 +50,12 @@ Everything in this repo is written in **English** and must stay English:
 ## Releasing
 
 1. `CHANGELOG.md`: move `[Unreleased]` bullets into `## [X.Y.Z] - YYYY-MM-DD`
-2. Bump `"version"` in `package.json` to `X.Y.Z`, commit
+2. Bump `"version"` in `package.json` to `X.Y.Z`, run `npm run readme`, commit
+   both (the README block then already shows the notes on Gitea)
 3. `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`
    -> Gitea mirrors the tag -> `release.yml`: npm publish (provenance) +
-   GitHub release -> package appears automatically on pi.dev/packages
+   GitHub release (both with the CHANGELOG section as notes) -> package appears
+   automatically on pi.dev/packages
 
 ## Repository: local Gitea + public GitHub mirror
 
