@@ -25,10 +25,26 @@ automatically at the start of a session.
 - `CHANGELOG.md` - user-facing changes per version (Keep a Changelog format).
 - `.spec-flow/` - tooling state, not part of the extension.
 
+## Changelog is mandatory
+
+Every user-facing change or new feature **must** be recorded in `CHANGELOG.md`
+in the same commit (or the same changeset) that introduces it - as a bullet
+under `## [Unreleased]`, using the Keep a Changelog categories (`Added`,
+`Changed`, `Fixed`, ...). Do not batch it up until the release: the changelog
+entry is part of the change, not part of the release.
+
+- Only user-facing changes belong there; internal refactors, CI/tooling tweaks
+  and docs-only fixes do not.
+- The release procedure (below) moves the `[Unreleased]` bullets into a new
+  `## [X.Y.Z]` section. `release.yml` rejects a tag whose version has no
+  matching changelog entry, so an unrecorded change will surface at release
+  time at the latest.
+
 ## Releasing
 
 1. Update `CHANGELOG.md`: move the changes from `[Unreleased]` into a new
-   `## [X.Y.Z] - YYYY-MM-DD` section.
+   `## [X.Y.Z] - YYYY-MM-DD` section (should already be there per the rule
+   above - verify completeness before cutting the release).
 2. Bump `"version"` in `package.json` to `X.Y.Z` and commit.
 3. Tag and push: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`
    (Gitea mirrors the tag to GitHub, which runs `release.yml` -> npm publish
