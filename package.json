@@ -10,14 +10,14 @@
     "tui"
   ],
   "license": "MIT",
-  "author": "<owner>",
+  "author": "FloezWerk",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/<owner>/piagent-pretty-api-error.git"
+    "url": "git+https://github.com/FloezWerk/piagent-pretty-api-error.git"
   },
-  "homepage": "https://github.com/<owner>/piagent-pretty-api-error#readme",
+  "homepage": "https://github.com/FloezWerk/piagent-pretty-api-error#readme",
   "bugs": {
-    "url": "https://github.com/<owner>/piagent-pretty-api-error/issues"
+    "url": "https://github.com/FloezWerk/piagent-pretty-api-error/issues"
   },
   "pi": {
     "extensions": [

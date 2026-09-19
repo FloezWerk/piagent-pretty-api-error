@@ -1,17 +1,18 @@
 /**
  * api-error-format
  *
- * Rendert Provider-/API-Fehler (z. B. OpenRouter 429 JSON-Payloads) lesbar:
- *  - die Fehlerzeile selbst wird zu einer kurzen Kopfzeile ("✖  API-Fehler · HTTP 429 · rate limit")
- *    (zwei Leerzeichen nach dem Icon: U+2716 wird in vielen Terminals als Emoji
- *     mit 2 Zellen Breite gezeichnet und schluckt sonst das folgende Leerzeichen)
- *  - darunter haengt ein rot hinterlegter Detail-Block (als Session-Entry)
- *  - `ctrl+o` (app.tools.expand) blendet die Rohdaten ein/aus
+ * Renders provider/API errors (e.g. OpenRouter 429 JSON payloads) in a readable
+ * form instead of raw JSON:
+ *  - the error line itself becomes a short headline ("✖  API error · HTTP 429 · rate limit")
+ *    (two spaces after the icon: U+2716 is drawn as a 2-cell emoji in many terminals
+ *     and would otherwise swallow the following space)
+ *  - below it, a red detail panel is attached (as a session entry)
+ *  - `ctrl+o` (app.tools.expand) toggles the raw data
  *
- * Der Detail-Block ist ein CustomEntry und landet NICHT im LLM-Kontext.
- * Retry-Semantik bleibt unangetastet: Pi klassifiziert Fehler anhand von
- * `message.errorMessage` (isRetryableAssistantError). Die Kurzzeile wird nur
- * gesetzt, wenn die Klassifikation danach identisch ist - sonst bleibt der Fehler roh.
+ * The detail panel is a CustomEntry and does NOT enter the LLM context.
+ * Retry semantics stay untouched: Pi classifies errors via `message.errorMessage`
+ * (isRetryableAssistantError). The short line is only applied when the
+ * classification stays identical - otherwise the error is left raw.
  */
 
 import type { EntryRenderOptions, ExtensionAPI, MessageEndEvent } from "@earendil-works/pi-coding-agent";
@@ -29,15 +30,15 @@ import {
 const ENTRY_TYPE = "api-error-details";
 const MAX_VALUE = 400;
 
-// Helle Schrift, lesbar auf dem dunklen Rot.
+// Bright text, readable on the dark red.
 const FG = "\x1b[38;5;224m";
 const RESET = "\x1b[39m\x1b[49m";
 
 /**
- * Hintergruende fuer Hauptmeldung ("panel") und Rohdaten-Bereich ("raw").
- * Bevorzugt 24-Bit-Farben (WT_SESSION/COLORTERM/kitty/... -> trueColor); im
- * 256-Farben-Fallback gibt es nur eine dunkle Rotstufe (52), daher wird der
- * Rohdaten-Bereich dort ueber die Schriftfarbe abgesetzt.
+ * Backgrounds for the main panel and the raw-data area.
+ * Prefers 24-bit colors (WT_SESSION/COLORTERM/kitty/... -> trueColor); the
+ * 256-color fallback only offers one dark red step (52), so the raw-data area
+ * is set apart via its text color there.
  */
 interface BlockPalette {
   panel: string;
@@ -156,17 +157,17 @@ function truncate(value: string, max: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// Fehler -> Daten
+// Error -> data
 // ---------------------------------------------------------------------------
 
 interface ErrorDetails {
-  /** Kopfzeile, z. B. "✖  API-Fehler · HTTP 429 · rate limit" */
+  /** Headline, e.g. "✖  API error · HTTP 429 · rate limit" */
   headline: string;
-  /** Detailzeilen (ohne ANSI), werden im Block umgebrochen */
+  /** Detail lines (without ANSI), wrapped inside the panel */
   lines: string[];
-  /** Original-Fehlertext (Rohdaten) */
+  /** Original error text (raw data) */
   raw: string;
-  /** Nur fuer die Vorschau: blendet die reale Fehlerzeile mit ein */
+  /** Preview only: includes the real error line in the render */
   preview?: boolean;
 }
 
@@ -189,8 +190,8 @@ function buildDetails(raw: string, provider: string | undefined, model: string |
 
   const headline =
     parsed.status !== undefined
-      ? `✖  API-Fehler · HTTP ${parsed.status} · ${category(parsed.status, raw)}`
-      : `✖  API-Fehler · ${category(parsed.status, raw)}`;
+      ? `✖  API error · HTTP ${parsed.status} · ${category(parsed.status, raw)}`
+      : `✖  API error · ${category(parsed.status, raw)}`;
 
   const lines: string[] = [headline];
   const add = (label: string, value: string | undefined) => {
@@ -206,24 +207,24 @@ function buildDetails(raw: string, provider: string | undefined, model: string |
     .join(" · ");
   add("Provider: ", origin || undefined);
   add("Model: ", model);
-  add("Grund: ", summary);
+  add("Reason: ", summary);
   if (upstream && upstream !== summary) add("Upstream: ", upstream);
   if (providerErrorCode || (code !== undefined && code !== parsed.status)) {
     add("Code: ", providerErrorCode ?? String(code));
   }
-  add("Hinweis: ", hint);
+  add("Hint: ", hint);
 
   return { headline, lines, raw };
 }
 
-/** Kurze Fehlerzeile, die auf den Detailblock verweist. */
+/** Short error line pointing to the detail panel. */
 function shortMessage(details: ErrorDetails, parsedJson: boolean, raw: string): string {
   const suffix = parsedJson ? "" : ` · ${truncate(clean(raw) ?? raw, 60)}`;
   return `${details.headline}${suffix} · Details: ctrl+o`;
 }
 
 // ---------------------------------------------------------------------------
-// Rendering: rot hinterlegtes Panel, das sich an die Terminalbreite anpasst
+// Rendering: red panel that adapts to the terminal width
 // ---------------------------------------------------------------------------
 
 const BOLD = "\x1b[1m";
@@ -231,10 +232,10 @@ const UNBOLD = "\x1b[22m";
 const DIM = "\x1b[2m";
 const BRIGHT = "\x1b[38;5;231m";
 
-/** Hintergrund + Schriftfarbe fuer das gesamte Panel (inkl. Padding). */
+/** Background + text color for the whole panel (including padding). */
 const panelBackground = (text: string) => `${blockPalette().panel}${FG}${text}${RESET}`;
 
-/** Hintergrund + Schriftfarbe fuer den Rohdaten-Bereich (dunkleres Rot). */
+/** Background + text color for the raw-data area (darker red). */
 const rawBackground = (text: string) => {
   const palette = blockPalette();
   return `${palette.raw}${palette.rawFg}${text}${RESET}`;
@@ -242,14 +243,14 @@ const rawBackground = (text: string) => {
 
 type RowKind = "title" | "field" | "hint" | "plain";
 
-/** `"raw": wert` - fuer den Hanging-Indent umgebrochener JSON-Werte. */
+/** `"raw": value` - for the hanging indent of wrapped JSON values. */
 const KEY_VALUE_RE = /^"[^"]+"\s*:\s*/;
 
 const spaces = (count: number) => " ".repeat(Math.max(0, count));
 
 /**
- * Umbruch ohne die fuehrenden Leerzeichen (die bricht PiTUI sonst als eigene
- * Zeile weg) und ohne Leerzeichen am Zeilenende.
+ * Wrapping without the leading whitespace (PiTUI would otherwise break it off
+ * as its own line) and without trailing spaces.
  */
 function wrapSegments(text: string, width: number): string[] {
   return wrapTextWithAnsi(text, width).map((segment) => segment.replace(/ +$/, ""));
@@ -257,17 +258,17 @@ function wrapSegments(text: string, width: number): string[] {
 
 interface BlockRow {
   kind: RowKind;
-  /** Nur fuer kind === "field": fett gesetzte Beschriftung, z. B. "Provider:" */
+  /** Only for kind === "field": bold label, e.g. "Provider:" */
   label?: string;
   text: string;
 }
 
-/** "Provider: openrouter" -> Label + Wert (fuer Spaltenausrichtung). */
+/** "Provider: openrouter" -> label + value (for column alignment). */
 const FIELD_RE = /^([A-Za-z][A-Za-z_-]{0,15}):[ \t]?(.*)$/;
 
-/** Baut die Zeilen des Detail-Panels aus den gespeicherten Detailzeilen. */
+/** Builds the detail panel rows from the stored detail lines. */
 function panelRows(lines: string[], expanded: boolean): BlockRow[] {
-  const rows: BlockRow[] = [{ kind: "title", text: lines[0] ?? "✖  API-Fehler" }];
+  const rows: BlockRow[] = [{ kind: "title", text: lines[0] ?? "✖  API error" }];
 
   const fields: BlockRow[] = [];
   for (const line of lines.slice(1)) {
@@ -287,15 +288,15 @@ function panelRows(lines: string[], expanded: boolean): BlockRow[] {
   rows.push({ kind: "plain", text: "" });
   rows.push({
     kind: "hint",
-    text: expanded ? "ctrl+o · Rohdaten ausblenden" : "ctrl+o · Rohdaten einblenden",
+    text: expanded ? "ctrl+o · hide raw data" : "ctrl+o · show raw data",
   });
 
   return rows;
 }
 
 /**
- * Panelinhalt: Beschriftungen spaltenbündig, umgebrochene Werte mit Hanging-Indent.
- * Padding und Hintergrund kommen von einer `Box` drumherum.
+ * Panel content: labels aligned in a column, wrapped values with a hanging indent.
+ * Padding and background come from a `Box` around it.
  */
 class ErrorBlock implements Component {
   private readonly rows: BlockRow[];
@@ -330,8 +331,8 @@ class ErrorBlock implements Component {
         const prefix = logical.slice(0, lead);
         const lines: string[] = [];
 
-        // `"key": wert`: Umbruch unter dem Wert (wie bei den Label-Zeilen oben),
-        // sonst wuerde der Wert in einer eigenen Zeile unter dem Key landen.
+        // `"key": value`: wrap below the value (like the label rows above),
+        // otherwise the value would land on its own line below the key.
         const keyed = content.match(KEY_VALUE_RE);
         const key = keyed?.[0].trimEnd() ?? "";
         const hang = key ? visibleWidth(key) + 1 : Math.min(2, Math.max(0, contentWidth - lead - 8));
@@ -362,7 +363,7 @@ class ErrorBlock implements Component {
   }
 }
 
-/** Rot hinterlegtes Panel mit Innenabstand. */
+/** Red panel with inner padding. */
 function panel(rows: BlockRow[]): Component {
   const box = new Box(1, 1, useBackground ? panelBackground : undefined);
   box.addChild(new ErrorBlock(rows));
@@ -370,14 +371,14 @@ function panel(rows: BlockRow[]): Component {
 }
 
 /**
- * Rohdaten: schliesst direkt (ohne Luecke) an das Panel an, gleiche Breite,
- * gleicher Innenabstand, aber dunklerer Rotton.
+ * Raw data: attaches directly (without a gap) to the panel, same width, same
+ * inner padding, but a darker red.
  */
 function rawPanel(raw: RawView): Component {
   const box = new Box(1, 1, useBackground ? rawBackground : undefined);
   box.addChild(
     new ErrorBlock([
-      { kind: "title", text: raw.json ? "Rohdaten (JSON):" : "Rohdaten:" },
+      { kind: "title", text: raw.json ? "Raw data (JSON):" : "Raw data:" },
       { kind: "plain", text: raw.text },
     ]),
   );
@@ -385,22 +386,22 @@ function rawPanel(raw: RawView): Component {
 }
 
 // ---------------------------------------------------------------------------
-// Rohdaten lesbar machen (JSON einruecken)
+// Make raw data readable (indent JSON)
 // ---------------------------------------------------------------------------
 
-/** Obergrenze, damit ein riesiger Payload den Block nicht flutet. */
+/** Upper bound so a huge payload does not flood the block. */
 const MAX_RAW_CHARS = 8000;
 
 interface RawView {
   text: string;
-  /** true = der Text wurde als JSON erkannt und eingerueckt */
+  /** true = the text was recognized as JSON and indented */
   json: boolean;
 }
 
 /**
- * Steckt in den Rohdaten JSON (z. B. `429: {"message":...}`), wird es mit
- * 2 Zeichen Einrueckung formatiert; ein fuehrender Status bleibt als Kopfzeile.
- * Ohne parsebares JSON bleiben die Rohdaten unveraendert.
+ * If the raw data contains JSON (e.g. `429: {"message":...}`), it is formatted
+ * with a 2-character indent; a leading status stays as a headline. Without
+ * parseable JSON the raw data stays unchanged.
  */
 function formatRaw(raw: string): RawView {
   const trimmed = raw.trim();
@@ -421,14 +422,14 @@ function formatRaw(raw: string): RawView {
   const prefix = trimmed.slice(0, start).trim().replace(/[\s:–-]+$/, "");
   const body = prefix ? `${prefix}:\n${pretty}` : pretty;
   if (body.length > MAX_RAW_CHARS) {
-    return { text: `${body.slice(0, MAX_RAW_CHARS)}\n… gekuerzt (${body.length} Zeichen)`, json: true };
+    return { text: `${body.slice(0, MAX_RAW_CHARS)}\n… truncated (${body.length} chars)`, json: true };
   }
 
   return { text: body, json: true };
 }
 
 // ---------------------------------------------------------------------------
-// Retry-Klassifikation (identisch zu Pi halten)
+// Retry classification (kept identical to Pi)
 // ---------------------------------------------------------------------------
 
 function verdict(raw: string): boolean | undefined {
@@ -440,8 +441,8 @@ function verdict(raw: string): boolean | undefined {
 }
 
 /**
- * Liefert die Kurzzeile nur, wenn Pi danach dieselbe Retry-Entscheidung trifft.
- * Sonst undefined (Fehler bleibt roh).
+ * Returns the short line only if Pi would make the same retry decision
+ * afterwards. Otherwise undefined (error stays raw).
  */
 function safeShortMessage(details: ErrorDetails, parsedJson: boolean, raw: string): string | undefined {
   const want = verdict(raw);
@@ -450,10 +451,10 @@ function safeShortMessage(details: ErrorDetails, parsedJson: boolean, raw: strin
   const short = shortMessage(details, parsedJson, raw);
   if (verdict(short) === want) return short;
 
-  // Reparatur: passenden Marker ergaenzen, damit die Klassifikation erhalten bleibt.
+  // Repair: append a suitable marker so the classification is preserved.
   for (const hint of want ? RETRYABLE_HINTS : NON_RETRYABLE_HINTS) {
     if (verdict(hint) !== want) continue;
-    const repaired = `${short}\n${want ? `Status: transient (${hint})` : `Grund: ${hint}`}`;
+    const repaired = `${short}\n${want ? `Status: transient (${hint})` : `Reason: ${hint}`}`;
     if (verdict(repaired) === want) return repaired;
   }
 
@@ -466,7 +467,7 @@ const SAMPLE_ERROR =
   '429: {"message":"Provider returned error","code":429,"metadata":{"raw":"deepseek/deepseek-v4.1-flash is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations","provider_name":"Fireworks","is_byok":false,"provider_error_code":"invalid_request_error","limit_source":"upstream_provider_shared_pool","remedy_hint":"Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing"}}';
 
 export default function (pi: ExtensionAPI) {
-  /** Letzter, noch nicht abgeschlossener Fehler der aktuellen Ausfuehrung. */
+  /** Most recent, not yet settled error of the current run. */
   let pending: ErrorDetails | undefined;
 
   pi.registerEntryRenderer<ErrorDetails>(ENTRY_TYPE, (entry, options: EntryRenderOptions, theme) => {
@@ -475,7 +476,7 @@ export default function (pi: ExtensionAPI) {
 
     const parts: Component[] = [];
 
-    // Vorschau: sieht sonst anders aus als der echte Fehler (Pi rendert dort die Fehlerzeile).
+    // Preview: otherwise it would look different from a real error (Pi renders the error line there).
     if (data.preview) {
       parts.push(new Text(theme.fg("dim", `Error: ${shortMessage(data, true, data.raw)}`), 1, 0));
     }
@@ -497,7 +498,7 @@ export default function (pi: ExtensionAPI) {
     const message = event.message;
     if (message.role !== "assistant") return;
 
-    // Erfolgreiche Antwort beendet den Fehlerfall (z. B. nach einem Retry).
+    // A successful answer ends the error state (e.g. after a retry).
     if (message.stopReason !== "error") {
       pending = undefined;
       return;
@@ -516,7 +517,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("agent_settled", () => {
-    // Erst hier steht fest, dass kein Retry mehr folgt -> Rohdaten einmalig anhaengen.
+    // Only here it is certain that no retry follows -> attach the raw data once.
     if (!pending) return;
     const details = pending;
     pending = undefined;
@@ -524,24 +525,24 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("apierrors", {
-    description: "API-Fehler-Darstellung: /apierrors [preview|on|off]",
+    description: "API error display: /apierrors [preview|on|off]",
     handler: async (args, ctx) => {
       const arg = args.trim().toLowerCase();
 
       if (arg === "on" || arg === "off") {
         useBackground = arg === "on";
-        ctx.ui.notify(`API-Fehler: roter Hintergrund ${useBackground ? "an" : "aus"}`, "info");
+        ctx.ui.notify(`API errors: red background ${useBackground ? "on" : "off"}`, "info");
         return;
       }
 
       if (arg === "" || arg === "preview") {
         const details = buildDetails(SAMPLE_ERROR, "openrouter", "deepseek/deepseek-v4.1-flash");
         pi.appendEntry(ENTRY_TYPE, { ...details, preview: true });
-        ctx.ui.notify("Beispiel-Fehlerblock angehaengt - ctrl+o zeigt die Rohdaten", "info");
+        ctx.ui.notify("Sample error block appended - ctrl+o shows the raw data", "info");
         return;
       }
 
-      ctx.ui.notify("Nutzung: /apierrors [preview|on|off]", "warning");
+      ctx.ui.notify("Usage: /apierrors [preview|on|off]", "warning");
     },
   });
 }

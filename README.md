@@ -1,45 +1,45 @@
 # piagent-pretty-api-error
 
-Pi-Extension, die Provider-/API-Fehler (z. B. OpenRouter-`429`-JSON-Payloads) lesbar
-darstellt statt als rohes JSON.
+Pi extension that renders provider/API errors (e.g. OpenRouter `429` JSON
+payloads) in a readable form instead of raw JSON.
 
-## Verhalten
+## Behavior
 
-Fehlerzeile (kurz):
-
-```
-Error: ✖  API-Fehler · HTTP 429 · rate limit · Details: ctrl+o
-```
-
-Darunter ein rot hinterlegtes Panel mit Innenabstand, spaltenbündigen Labels und
-Hanging-Indent für umgebrochene Werte:
+Error line (short):
 
 ```
-                                          ← Innenabstand oben
-✖  API-Fehler · HTTP 429 · rate limit      ← Titel (fett)
+Error: ✖  API error · HTTP 429 · rate limit · Details: ctrl+o
+```
+
+Below it, a red panel with inner padding, column-aligned labels and a hanging
+indent for wrapped values:
+
+```
+                                          ← inner padding (top)
+✖  API error · HTTP 429 · rate limit      ← title (bold)
 
 Provider:  openrouter · Upstream: Fireworks
 Model:     deepseek/deepseek-v4.1-flash
-Grund:     Provider returned error
+Reason:    Provider returned error
 Upstream:  deepseek/… is temporarily rate-limited upstream. Please retry shortly,
            or add your own key to accumulate your rate limits: …
 Code:      invalid_request_error
-Hinweis:   Retry shortly, add your own provider key …
+Hint:      Retry shortly, add your own provider key …
 
-ctrl+o · Rohdaten einblenden              ← gedimmt
-                                          ← Innenabstand unten
+ctrl+o · show raw data                    ← dimmed
+                                          ← inner padding (bottom)
 ```
 
-`ctrl+o` (`app.tools.expand`) blendet die Rohdaten ein – als **direkt anschliessendes,
-dunkleres Panel** in gleicher Breite/Ausrichtung (gehoert sichtbar zur Meldung).
-Enthalten die Rohdaten JSON, wird es eingerückt dargestellt (Label dann
-`Rohdaten (JSON):`, führender Status bleibt als Kopfzeile):
+`ctrl+o` (`app.tools.expand`) expands the raw data - as a **directly attached,
+darker panel** with the same width/alignment (visibly part of the error).
+If the raw data contains JSON, it is shown indented (label then
+`Raw data (JSON):`, the leading status stays as a headline):
 
 ```
 …
-ctrl+o · Rohdaten ausblenden
+ctrl+o · hide raw data
 
-Rohdaten (JSON):
+Raw data (JSON):
 429:
 {
   "message": "Provider returned error",
@@ -52,58 +52,59 @@ Rohdaten (JSON):
 }
 ```
 
-- Nur wenn der Text parsebar ist; sonst bleiben die Rohdaten unverändert.
-- Lange Werte/URLs brechen mit **Hanging-Indent unter dem Wert** um (nicht flush-left).
-- Kürzung bei > 8000 Zeichen (`… gekuerzt (N Zeichen)`), damit der Block nicht flutet.
+- Only when the text is parseable; otherwise the raw data stays unchanged.
+- Long values/URLs wrap with a **hanging indent below the value** (not flush-left).
+- Truncated above 8000 chars (`… truncated (N chars)`) so the block does not flood.
 
-## Eigenschaften
+## Features
 
-- Detailblock ist ein `CustomEntry` → **kein Bestandteil des LLM-Kontexts**, wird aber in der
-  Session persistiert und beim Resume/Reload mitgerendert.
-- Der Entry wird erst bei `agent_settled` angehängt, d. h. nur für finale Fehler
-  (keine Rohdaten-Blöcke für Fehlversuche, die noch erfolgreich retryed werden).
-- **Retry-Semantik bleibt unangetastet:** Pi klassifiziert Fehler über
-  `isRetryableAssistantError(message.errorMessage)`. Die Kurzzeile wird nur gesetzt,
-  wenn die Klassifikation danach identisch ist – sonst bleibt der Fehler roh.
-- Der rote Block ist eine eigene Component: er fuellt die Terminalbreite und bricht lange
-  Zeilen selbst um (kein abgeschnittenes/zerrissenes Layout bei schmalen Terminals).
-  Aufbau: PiTUI `Box` (Padding + Hintergrund) um einen `ErrorBlock`, der Labels
-  spaltenbündig setzt und Fortsetzungszeilen auf die Wertspalte einrückt.
-- Farben werden über `getCapabilities().trueColor` gewählt:
-  - 24-Bit (Windows Terminal, kitty, iTerm2, Ghostty, …): Meldung `rgb(96,22,22)`,
-    Rohdaten `rgb(54,14,14)`
-  - 256-Farben-Fallback: beide `color 52` (dunkelstes Rot der Palette), Rohdaten
-    zusätzlich über die Schriftfarbe (181 statt 224) abgesetzt
+- The detail panel is a `CustomEntry` → **not part of the LLM context**, but it is
+  persisted with the session and re-rendered on resume/reload.
+- The entry is attached at `agent_settled` only, i.e. only for final errors
+  (no raw-data blocks for failed attempts that still retry successfully).
+- **Retry semantics stay untouched:** Pi classifies errors via
+  `isRetryableAssistantError(message.errorMessage)`. The short line is only
+  applied when the classification stays identical - otherwise the error stays raw.
+- The red panel is its own component: it fills the terminal width and wraps long
+  lines itself (no clipped/torn layout on narrow terminals).
+  Structure: PiTUI `Box` (padding + background) around an `ErrorBlock` that
+  aligns labels in a column and indents continuation lines to the value column.
+- Colors are chosen via `getCapabilities().trueColor`:
+  - 24-bit (Windows Terminal, kitty, iTerm2, Ghostty, …): message `rgb(96,22,22)`,
+    raw data `rgb(54,14,14)`
+  - 256-color fallback: both `color 52` (darkest red in the palette), raw data
+    additionally set apart via text color (181 instead of 224)
 
 ## Installation
 
-Lokal (Entwicklung):
+Local (development):
 
 ```bash
 pi -e ./extensions/api-error-format.ts
 ```
 
-Als Pi-Package (GitHub, `<owner>` = GitHub-Account/Organisation):
+As a pi package (GitHub):
 
 ```bash
-pi install git:git@github.com:<owner>/piagent-pretty-api-error.git
-# oder
-pi install https://github.com/<owner>/piagent-pretty-api-error.git
+pi install git:git@github.com:FloezWerk/piagent-pretty-api-error.git
+# or
+pi install https://github.com/FloezWerk/piagent-pretty-api-error.git
 ```
 
-Alternativ die Datei nach `~/.pi/agent/extensions/` kopieren (Auto-Discovery).
+Alternatively copy the file to `~/.pi/agent/extensions/` (auto-discovery).
 
-## Befehle
+## Commands
 
-| Befehl | Wirkung |
+| Command | Effect |
 | --- | --- |
-| `/apierrors preview` | Hängt einen Beispiel-Fehlerblock an (mit `ctrl+o` testbar) |
-| `/apierrors on` | Roter Hintergrund an |
-| `/apierrors off` | Roter Hintergrund aus |
+| `/apierrors preview` | Appends a sample error block (testable with `ctrl+o`) |
+| `/apierrors on` | Red background on |
+| `/apierrors off` | Red background off |
 
-Nach Änderungen in einer laufenden Session: `/reload`.
+After changes in a running session: `/reload`.
 
-## Abhängigkeiten
+## Dependencies
 
-`@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent` und `@earendil-works/pi-tui` werden
-von Pi gebündelt und sind daher nur als `peerDependencies` deklariert.
+`@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent` and
+`@earendil-works/pi-tui` are bundled by pi and are therefore only declared as
+`peerDependencies`.
