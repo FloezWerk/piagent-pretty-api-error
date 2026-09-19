@@ -83,12 +83,12 @@ Local (development):
 pi -e ./extensions/api-error-format.ts
 ```
 
-As a pi package (GitHub):
+As a pi package (GitHub or npm):
 
 ```bash
 pi install git:git@github.com:FloezWerk/piagent-pretty-api-error.git
 # or
-pi install https://github.com/FloezWerk/piagent-pretty-api-error.git
+pi install npm:@floez-werk/piagent-pretty-api-error
 ```
 
 Alternatively copy the file to `~/.pi/agent/extensions/` (auto-discovery).

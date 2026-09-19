@@ -61,9 +61,10 @@ For a visual check run `pi -e ./extensions/api-error-format.ts` and use
 - Remote: `origin` = Gitea (`ssh://git@gitea/FloezWerk/piagent-pretty-api-error.git`)
   - this is the push target. The public GitHub URL is
   `git@github.com:FloezWerk/piagent-pretty-api-error.git`.
-- **Installation instructions always use the GitHub URL**, never the Gitea path
-  (the Gitea path is internal). Example:
-  `pi install git:git@github.com:FloezWerk/piagent-pretty-api-error.git`.
+- **Installation instructions always use the GitHub URL or the npm package**, never
+  the Gitea path (the Gitea path is internal). Examples:
+  `pi install git:git@github.com:FloezWerk/piagent-pretty-api-error.git` or
+  `pi install npm:@floez-werk/piagent-pretty-api-error`.
 - Exception: the locally installed extension copy was installed from the Gitea
   source, so refreshing it uses that same source:
   `pi update ssh://git@gitea/FloezWerk/piagent-pretty-api-error.git`.
