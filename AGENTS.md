@@ -2,6 +2,12 @@
 
 Instructions for AI coding agents (e.g. pi coding agent) working in this repo.
 
+## Keep this file short
+
+This file is the **first rule**: keep `AGENTS.md` very short and concise -
+prefer bullet points over prose. When adding or editing a rule, condense,
+never expand.
+
 ## Language: English only
 
 Everything in this repo is written in **English** and must stay English:
