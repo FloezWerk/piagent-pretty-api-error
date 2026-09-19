@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-19
+
+### Changed
+
+- The npm package page now shows the changes of the published version: the
+  CHANGELOG section is inlined into the README, instead of only linking to
+  `CHANGELOG.md`. Gitea and the GitHub mirror show the same README, so the notes
+  of the current release are visible there too. The README also carries
+  npm/license/CI/changelog badges.
+- GitHub release notes for a version come from its CHANGELOG section (same text
+  as the npm package page) instead of a generated commit list.
+- Release helpers live in `scripts/` (not published): README block sync, which
+  `npm run check` and CI verify, plus the release-notes body for `release.yml`.
+
 ## [0.1.1] - 2026-09-19
 
 ### Changed
@@ -47,8 +61,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Versions link to their GitHub release page (created by release.yml), while
      [Unreleased] links to the comparison against the last tag. -->
-[Unreleased]: https://github.com/FloezWerk/piagent-pretty-api-error/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/FloezWerk/piagent-pretty-api-error/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/FloezWerk/piagent-pretty-api-error/releases/tag/v0.1.2
 [0.1.0]: https://github.com/FloezWerk/piagent-pretty-api-error/releases/tag/v0.1.0
 
-<!-- 0.1.1 was released to npm without a git tag, so it links to npm. -->
+<!-- 0.1.1 was released to npm without a git tag, so it links to npm (0.1.2 and
+     later are tagged, hence they link to their GitHub release page). -->
 [0.1.1]: https://www.npmjs.com/package/@floez-werk/piagent-pretty-api-error/v/0.1.1
