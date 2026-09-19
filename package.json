@@ -11,9 +11,10 @@
   "license": "MIT",
   "author": "FloezWerk",
   "scripts": {
-    "readme": "node scripts/sync-readme-changelog.mjs",
+    "readme": "npx -y @floez-werk/pi-extension-release-tool@^0.1 sync-readme-changelog",
+    "release-notes": "npx -y @floez-werk/pi-extension-release-tool@^0.1 release-notes",
     "check": "npm run check:readme && npm run check:bundle && npm run check:pack",
-    "check:readme": "node scripts/sync-readme-changelog.mjs --check",
+    "check:readme": "npx -y @floez-werk/pi-extension-release-tool@^0.1 sync-readme-changelog --check",
     "check:bundle": "npx -y esbuild@0.25.12 extensions/api-error-format.ts --bundle --format=esm --platform=node --external:@earendil-works/* --outfile=/tmp/api-error-format.mjs",
     "check:pack": "npm pack --dry-run"
   },

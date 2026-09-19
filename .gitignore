@@ -8,11 +8,11 @@ package-lock.json
 .idea/
 .vscode/
 
-# Lokale/vertrauliche Dateien (nicht ins Repo, nicht in den Mirror)
+# Local/secret files (never commit, never mirror)
 .env
 .env.*
 *.local
 
-# Pi-eigene Arbeitsdaten
+# Pi working data
 .spec-flow/
 .pi/
