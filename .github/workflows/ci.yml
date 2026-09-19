@@ -19,20 +19,11 @@ jobs:
         with:
           node-version: '22'
 
-      # The extension has no runtime dependencies (pi bundles its peers), so
-      # there is nothing to install - bundling with peers kept external is the
-      # quickest "does it compile" check.
-      - name: Bundle smoke test (pi peers stay external)
-        run: |
-          npx -y esbuild@0.25.12 extensions/api-error-format.ts \
-            --bundle --format=esm --platform=node \
-            --external:@earendil-works/* \
-            --outfile=/tmp/api-error-format.mjs
-
-      # The extension is loaded from source by pi - the tarball must contain
-      # everything a user needs and nothing else.
-      - name: Package content check (npm pack dry-run)
-        run: npm pack --dry-run
+      # The checks live in package.json scripts so they run identically on a
+      # dev machine and in CI (see AGENTS.md). There is nothing to install:
+      # the extension has no runtime dependencies (pi bundles its peers).
+      - name: Bundle + package content checks
+        run: npm run check
 
       # AGENTS.md: this project is English-only.
       - name: No-German guard

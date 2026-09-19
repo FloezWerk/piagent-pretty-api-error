@@ -10,6 +10,11 @@
   ],
   "license": "MIT",
   "author": "FloezWerk",
+  "scripts": {
+    "check": "npm run check:bundle && npm run check:pack",
+    "check:bundle": "npx -y esbuild@0.25.12 extensions/api-error-format.ts --bundle --format=esm --platform=node --external:@earendil-works/* --outfile=/tmp/api-error-format.mjs",
+    "check:pack": "npm pack --dry-run"
+  },
   "files": [
     "extensions",
     "README.md",

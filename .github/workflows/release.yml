@@ -56,15 +56,8 @@ jobs:
             exit 1
           fi
 
-      - name: Bundle smoke test (pi peers stay external)
-        run: |
-          npx -y esbuild@0.25.12 extensions/api-error-format.ts \
-            --bundle --format=esm --platform=node \
-            --external:@earendil-works/* \
-            --outfile=/tmp/api-error-format.mjs
-
-      - name: Package content check (npm pack dry-run)
-        run: npm pack --dry-run
+      - name: Repeat CI checks
+        run: npm run check
 
       # The extension is plain TypeScript loaded by pi - no build step needed.
       - name: Publish to npm (with provenance)
