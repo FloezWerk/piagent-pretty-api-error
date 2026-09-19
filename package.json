@@ -19,6 +19,7 @@
     "extensions",
     "README.md",
     "LICENSE",
+    "CHANGELOG.md",
     "AGENTS.md"
   ],
   "repository": {

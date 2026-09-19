@@ -22,7 +22,18 @@ automatically at the start of a session.
 ## Project layout
 
 - `extensions/api-error-format.ts` - the Pi extension (single entry point).
+- `CHANGELOG.md` - user-facing changes per version (Keep a Changelog format).
 - `.spec-flow/` - tooling state, not part of the extension.
+
+## Releasing
+
+1. Update `CHANGELOG.md`: move the changes from `[Unreleased]` into a new
+   `## [X.Y.Z] - YYYY-MM-DD` section.
+2. Bump `"version"` in `package.json` to `X.Y.Z` and commit.
+3. Tag and push: `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`
+   (Gitea mirrors the tag to GitHub, which runs `release.yml` -> npm publish
+   with provenance + GitHub release; the package then appears automatically on
+   pi.dev/packages via the `pi-package` keyword).
 
 ## Checks
 
