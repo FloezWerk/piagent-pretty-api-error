@@ -26,6 +26,12 @@ automatically at the start of a session.
 
 ## Checks
 
+CI runs on GitHub (`.github/workflows/ci.yml`) on every push/PR: bundle smoke
+test, `npm pack --dry-run` and a no-German guard. Releasing is separate
+(`.github/workflows/release.yml`, tag `vX.Y.Z` -> npm publish + GitHub release).
+
+Local equivalents before committing:
+
 The extension has no test suite; peers are bundled by pi, so a bundling smoke
 test is the quickest check (peer packages stay external):
 
