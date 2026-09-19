@@ -3,6 +3,15 @@
 Pi extension that renders provider/API errors (e.g. OpenRouter `429` JSON
 payloads) in a readable form instead of raw JSON.
 
+## Table of contents
+
+- [Behavior](#behavior)
+- [Features](#features)
+- [Installation](#installation)
+- [Commands](#commands)
+- [Dependencies](#dependencies)
+- [Changelog](#changelog)
+
 ## Behavior
 
 Error line (short):
@@ -91,6 +100,9 @@ pi install git:git@github.com:FloezWerk/piagent-pretty-api-error.git
 pi install npm:@floez-werk/piagent-pretty-api-error
 ```
 
+The npm package is listed in the [pi package catalog](https://pi.dev/packages)
+automatically (keyword `pi-package`).
+
 Alternatively copy the file to `~/.pi/agent/extensions/` (auto-discovery).
 
 ## Commands
@@ -108,3 +120,10 @@ After changes in a running session: `/reload`.
 `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent` and
 `@earendil-works/pi-tui` are bundled by pi and are therefore only declared as
 `peerDependencies`.
+
+## Changelog
+
+Notable changes per version are documented in
+[CHANGELOG.md](CHANGELOG.md). Every tagged release (`vX.Y.Z`) is published to
+npm and appears as a [GitHub release](https://github.com/FloezWerk/piagent-pretty-api-error/releases)
+with the package tarball.
