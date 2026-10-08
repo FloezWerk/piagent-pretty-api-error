@@ -32,6 +32,7 @@ Everything in this repo is written in **English** and must stay English:
 - Every **user-facing** change/feature gets a bullet under `## [Unreleased]` in
   `CHANGELOG.md`, in the same commit that introduces it
   (categories: `Added`, `Changed`, `Fixed`, ...).
+- Entries are compact and not too technical: at most two sentences.
 - Internal refactors, CI/tooling tweaks and docs-only fixes: no changelog entry.
 - `release.yml` rejects a tag without a matching `X.Y.Z` heading (the version
   links its GitHub release) - a
