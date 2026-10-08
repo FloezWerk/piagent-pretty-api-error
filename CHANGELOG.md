@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.3] - 2026-09-19
+## [0.1.3](https://github.com/FloezWerk/piagent-pretty-api-error/releases/tag/v0.1.3) - 2026-09-19
 
 ### Changed
 
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the published `pi-release` CLI, and CI/release run through its shared reusable
   workflows (pinned `@v0.1`). The local `scripts/` copies are gone.
 
-## [0.1.2] - 2026-09-19
+## [0.1.2](https://github.com/FloezWerk/piagent-pretty-api-error/releases/tag/v0.1.2) - 2026-09-19
 
 ### Changed
 
@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Release helpers live in `scripts/` (not published): README block sync, which
   `npm run check` and CI verify, plus the release-notes body for `release.yml`.
 
-## [0.1.1] - 2026-09-19
+## [0.1.1](https://www.npmjs.com/package/@floez-werk/piagent-pretty-api-error/v/0.1.1) - 2026-09-19
 
 ### Changed
 
@@ -56,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - npm package metadata: `@floez-werk` scope, `files`, scripts, repository,
   homepage, bugs; MIT `LICENSE`
 
-## [0.1.0] - 2026-09-18
+## [0.1.0](https://github.com/FloezWerk/piagent-pretty-api-error/releases/tag/v0.1.0) - 2026-09-18
 
 ### Added
 
@@ -69,13 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `isRetryableAssistantError` classifies it identically
 - `/apierrors preview|on|off` command
 
-<!-- Versions link to their GitHub release page (created by release.yml), while
-     [Unreleased] links to the comparison against the last tag. -->
+<!-- [Unreleased] compares against the last tagged version. Every version heading
+     links to its GitHub release page (created by release.yml); 0.1.1 was
+     released to npm without a git tag, so it links to npm. -->
 [Unreleased]: https://github.com/FloezWerk/piagent-pretty-api-error/compare/v0.1.3...HEAD
-[0.1.3]: https://github.com/FloezWerk/piagent-pretty-api-error/releases/tag/v0.1.3
-[0.1.2]: https://github.com/FloezWerk/piagent-pretty-api-error/releases/tag/v0.1.2
-[0.1.0]: https://github.com/FloezWerk/piagent-pretty-api-error/releases/tag/v0.1.0
-
-<!-- 0.1.1 was released to npm without a git tag, so it links to npm (0.1.2 and
-     later are tagged, hence they link to their GitHub release page). -->
-[0.1.1]: https://www.npmjs.com/package/@floez-werk/piagent-pretty-api-error/v/0.1.1

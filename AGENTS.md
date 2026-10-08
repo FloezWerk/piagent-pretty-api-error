@@ -33,7 +33,8 @@ Everything in this repo is written in **English** and must stay English:
   `CHANGELOG.md`, in the same commit that introduces it
   (categories: `Added`, `Changed`, `Fixed`, ...).
 - Internal refactors, CI/tooling tweaks and docs-only fixes: no changelog entry.
-- `release.yml` rejects a tag without a matching `## [X.Y.Z]` entry - a
+- `release.yml` rejects a tag without a matching `X.Y.Z` heading (the version
+  links its GitHub release) - a
   forgotten entry surfaces at release time at the latest.
 - `README.md` has two generated blocks - the badges (from `package.json`) and
   the release notes of the current version (from `CHANGELOG.md`) - written by
@@ -53,7 +54,8 @@ Everything in this repo is written in **English** and must stay English:
 
 ## Releasing
 
-1. `CHANGELOG.md`: move `[Unreleased]` bullets into `## [X.Y.Z] - YYYY-MM-DD`
+1. `CHANGELOG.md`: move `[Unreleased]` bullets into a heading
+   `X.Y.Z - YYYY-MM-DD`, with the version as the link to its GitHub release
 2. Bump `"version"` in `package.json` to `X.Y.Z`, run `npm run readme`, commit
    both (the README block then already shows the notes on Gitea)
 3. `git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z`
