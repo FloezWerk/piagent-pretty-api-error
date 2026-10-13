@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4](https://github.com/FloezWerk/piagent-pretty-api-error/releases/tag/v0.1.4) - 2026-10-13
+
+### Changed
+
+- Published to npm via trusted publishing instead of a stored npm token.
+
 ## [0.1.3](https://github.com/FloezWerk/piagent-pretty-api-error/releases/tag/v0.1.3) - 2026-09-19
 
 ### Changed
@@ -72,4 +78,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- [Unreleased] compares against the last tagged version. Every version heading
      links to its GitHub release page (created by release.yml); 0.1.1 was
      released to npm without a git tag, so it links to npm. -->
-[Unreleased]: https://github.com/FloezWerk/piagent-pretty-api-error/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/FloezWerk/piagent-pretty-api-error/compare/v0.1.4...HEAD
