@@ -19,7 +19,6 @@ permissions:
 
 jobs:
   publish:
-    # TEMPORARY: pinned to a toolkit test tag until v0.1 is moved; revert to @v0.1 afterwards.
-    uses: FloezWerk/pi-extension-release-tool/.github/workflows/reusable-release.yml@v0.1.6-oidc.3
+    uses: FloezWerk/pi-extension-release-tool/.github/workflows/reusable-release.yml@v0.1
     secrets:
       npm_token: ${{ secrets.NPM_TOKEN }}
